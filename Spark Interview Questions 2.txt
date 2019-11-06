@@ -1,0 +1,207 @@
+SPARK framework was designed to accelerate cluster computing that doesn't work fast on similar frameworks.
+Spark has a REPL (read evaluate print loop) shell.
+
+MAP REDUCE
+1. Name nodes and data nodes
+2. Job  Tracker- Master node which manages all jobs and resources in a cluster.
+   Task Tracker- Agents deployed to each machine in the cluster to run the map and reduce task.
+3. JobHistoryServer- A component that tracks completed jobs, and is typically deployed as a separate function or with 
+                     JobTracker.
+
+Spark vs map-reduce:
+1. Spark is near real-time while map reduce is batch procesing
+2. Spark is much faster almost 100 times than map-reduce.
+3. Spark is easy to code/program while map reduce is difficult
+4. Ensures low latency by caching the interim results across its distributed memory.
+5. Spark has graph processing while map reduce don't.
+6. Spark is memory based- in memory while map reduce is disk based. This affects the processing speed.
+
+Key features of spark:
+1. In-memory computing. Speed is much better for repetitive calculation. 
+2. Can be programmed using python/scala etc.
+3. Calculates the DAC cycle to get the optimal path to provide result. Lazy execution.
+4. Gels with hadoop ecosystem very well.
+5. Real time spark streaming.
+6. Has machine language algo already implemented (MLLIB)
+7. Graphx supports graph theory.
+
+Spark Streamimg:
+Used for processing real time data
+Provides high throughput and fault tolerant stream processing of live stream data.
+Fundamental Stream unit is D-tream which is basically a series of RDDS to process real time data
+
+Fault tolerant: any RDD is lost it can regenerate those RDDS from the existing/source data.
+
+Data source: HDFS, Flume
+Data target: systems, dashboard, databases
+
+reduceByKey() vs groupByKey():
+
+The reduceByKey() performs better than groupByKey() because the first one combines the data in each of the respective machines 
+before the data is shuffeled and then submit the data for the reduce operation due to which there are less unnecessary trafic 
+over the network.
+The groupByKey() on the other hand gives all the data for shuffling at the same time due to which there is more traffic over 
+the network and hence slower. Infact reduceByKey is the most efficient way of aggregating data using Spark.
+
+Partitioning
+
+Spark’s partitioning is available on all RDDs of key/value pairs, and causes the system to group elements based on a function of each key. 
+Although Spark does not give explicit control of which worker node each key goes to (partly because the system is designed to work even 
+if specific nodes fail), it lets the program ensure that a set of keys will appear together on some node. For example, you might choose 
+to hashpartition an RDD into 100 partitions so that keys that have the same hash value modulo 100 appear on the same node. Or you might 
+range-partition the RDD into sorted ranges of keys so that elements with keys in the same range appear on the same node.
+
+The processNewLogs() method can remain unchanged: the events RDD is local to processNewLogs(), and is used only once within this method, 
+so there is no advantage in specifying a partitioner for events. Because we called partitionBy() when building userData, Spark will now know 
+that it is hash-partitioned, and calls to join() on it will take advantage of this information. In particular, when we call user 
+Data.join(events), Spark will shuffle only the events RDD, sending events with each particular UserID to the machine that contains the 
+corresponding hash partition of userData (see Figure 4-5). The result is that a lot less data is communicated over the network, and the 
+program runs significantly faster.
+
+Note that partitionBy() is a transformation, so it always returns a new RDD—it does not change the original RDD in place. RDDs can never be 
+modified once created. Therefore it is important to persist and save as userData the result of partitionBy(), not the original sequenceFile().
+Also, the 100 passed to partitionBy() represents the number of partitions, which will control how many parallel tasks perform further 
+operations on the RDD (e.g., joins); in general, make this at least as large as the number of cores in your cluster.
+
+
+import org.apache.spark.HashPartitioner
+sc= SparkContext()
+basedata= sc.sequenceFile ("...")
+userdata= basedata.partitionBy (new HashPartitioner(8)).persist()
+
+
+
+KAFKA:
+
+kafka is basically based on consumer, producer, kafka broker, message, topic and offset
+
+Producer: sends messaage to the kafka broker
+
+Consumer: Consumes message from kafka broker
+
+message: bytes of data information which is passed via the kafka broker. It is a continious stream of message 
+
+topic: The messages exchanged between consumer and producer must be related to a topic. The topic is an unique 
+identifier of the kind of communication hapenning inside kafka broker.
+
+offset:Now there can be lots of messages being passed across the kafka broker and the volume might be huge. To 
+make the read more scalable/faster, they are divided into partitions. Offset is a sequence number of a message
+in a partition. This number is assigned once the messaage arrives in the partition and these numbers don't change.
+There is no global offset across partitions.
+
+Global unique identifier for a message: Topic Name --> Partition Number --> Offset Number
+
+Consumer group: Its a group of consumers which performs the same task.
+
+
+bin\flume-ng agent --conf conf --conf-file conf file location
+Flume supports Agent configurations via Zookeeper
+
+
+
+
+KAFKA
+
+Kafka is a messaging queue which works on the concept of broker, consumer and producer.
+It runs on a publish subscribe model.
+
+KAFKA was designed thinking of a common message platform between various applications of an organization and the backend tools to store and maintain data where the applications will produce data and send them inside kafka channel as messages
+and then consumers like hadoop, datawaarehous etc. will consume the same.
+
+kafka is basically based on consumer, producer, kafka broker, message, topic and offset
+
+Producer: sends messaage to the kafka broker	
+Consumer: Entity which consumes message from kafka broker
+Broker:   Broker is the server from which the data about the topic are taken/retrieved. They store the topic data/messages.
+
+message: bytes of data information which is passed via the kafka broker. It is a continious stream of message 
+topic: The messages exchanged between consumer and producer must be related to a topic. The topic is an unique 
+identifier of the kind of communication hapenning inside kafka broker.
+offset:Now there can be lots of messages being passed across the kafka broker and the volume might be huge. To 
+make the read more scalable/faster, they are divided into partitions. Offset is a sequence number of a message
+in a partition. This number is assigned once the messaage arrives in the partition and these numbers don't change.
+There is no global offset across partitions.
+
+Global unique identifier for a message: Topic Name --> Partition Number --> Offset Number
+
+Consumer group: Its a group of consumers which performs the same task.
+
+Some advantages of KAFKA as a messaaging system:
+1. Persistence of data inside Kafka broker.
+2. Distributed in nature.
+3. Partitioning of large message data along with offset marking to make read faster and scalable.
+
+Offset of next message= Offset of previous message + size of next message.
+
+PARTITION:
+However, you may need to partition on an attribute of the data if
+
+The consumers of the topic need to aggregate by some attribute of the data
+The consumers need some sort of ordering guarantee
+Another resource is a bottleneck and you need to shard data
+You want to concentrate data for efficiency of storage and/or indexing
+
+
+https://blog.cloudera.com/blog/2017/06/offset-management-for-apache-kafka-with-apache-spark-streaming/
+
+
+
+More Spark concepts:
+
+RDD:
+Resilient distributed dataset (RDD) is a spark core data-structure which holds data. It can be considered as an abstraction layer which holds
+multiple pieces of partitioned data as a single dataset. 
+It is resilient because it can be re-built from the lineage graph or DAG created during the transformation phase by spark engine. So it there 
+is a load failure, spark engine can always refer the lineage graph to re-create RDD. 
+It is distributed as below the abstraction layer, the data actually sits in a distributed fashion across multiple clusters. The underlying
+data is partitioned and the partitions are spread across multiple machines. This gives each node fewer data to work with, thus resulting in
+overall faster operation.
+
+
+Dataframes:
+Spark dataframes are distributed collection of data in rows and columns. It is the structured representation of data similar like a table.
+We can say dataframes are relational database tables with better optimization.
+
+Persistence:
+All spark computations are presented as lineage graphs. Different parts of job computations are connected by dependencies and computations 
+are lazy. To trigger a computation, you have to call an action on RDD or dataframe, for example: count. This makes Spark start computation 
+from the beginning of the graph and compute the result step by step, partition by partition. The point here is that if you have the same 
+lineage and you call another action collect(), spark will recompute the whole graph even though nothing has changed.And this thing can be 
+really bad for several types of computations, for example, if you have an iterative algorithm which loops through stable pre-computed data 
+like machine-learning algorithm. That's why Spark provides you with a method to actually store intermediate results of a computation, and this 
+is called persist.
+
+RDD and Dataframe has a persist function which actually allows you the option to safekeep/store intermediate transformations applied on a 
+dataframe/RDD in either memory or disk IO and this is called persist.When you persist, you have to choose where to persist the data. There 
+are three kinds of storage levels available in pi Spark. The preferable one is MEMORY_ONLY, your executor has some reserved memory for 
+persisting and when you choose MEMORY_ONLY, Spark tries to save partitions in this part of memory if there is enough space. There is also a 
+MEMORY_ONLY_2 option, which provides a bit of redundancy by storing two replicas on different cluster nodes. The second level is 
+MEMORY_AND_DISK. Basically, Spark tries to store as much of data as possible in memory and if there is not enough space, it will spill records
+to disk. This, however, introduces performance considerations because disks IO is pretty slow.
+
+So, what do you have to keep in mind when using persistence? Spark is an in-memory framework and you have to keep it so for the best 
+performance. That's why store your partitions in memory if they fit. And even if it does not fit, you should probably think about increasing 
+the memory of your executors.
+
+Checkpoint:
+And finally, if you use some kind of iterative algorithm like machine-learning algorithm in case of all specialization, you should definitely 
+think of persisting the results of intermediate computations like training dataset. Okay, as I have already mentioned, when you persist, 
+intermediate results are stored in the memory of an executor or in disk of an executor. So actually, if an executor fails, Spark has to 
+recompute partitions of the particular executor from scratch, but your cluster can be really crowded by different jobs and users and the 
+resource manager will not allocate new containers for this recomputation. This situation may dramatically increase the running time of your 
+job. That's why Spark provides you with the mechanism of a reliable persistence called checkpointing. When you checkpoint, Spark writes 
+partitions of an RDD or a dataframe to a reliable storage and this storage is HDFS. And another interesting thing with checkpointing is that 
+it also turnkeys the whole lineage graph which produced this intermediate result. To make a checkpoint, you need to specify a directory in 
+HDFS where to store the data and then call checkpoint method of an RDD. And the caveat here is that you can't checkpoint a dataframe. For a 
+dataframe, you have to checkpoint the underlying RDD. So, want to make a checkpoint? You should definitely think about checkpointing in a 
+noisy cluster. Cluster is called noisy if there are lots of jobs and users which compete for resources and there are not enough resources to 
+run all the jobs simultaneously. You must think about checkpointing if your computations are really expensive and take long time to finish 
+because it could be faster to write an RDD to HDFS and read it back in parallel than recompute from scratch. And there's a slight inconvenience; 
+there is no way to checkpoint a dataframe so you have to checkpoint the underlying RDD. So, to sum up, in this video, you learned that Spark 
+provides ways to store intermediate results by persisting or checkpointing. It helps to speed up several kinds of workloads like iterative 
+algorithms in general and machine-learning algorithms in particular. You have learned that persisting is unreliable. If an executor fails, 
+Spark has to recompute its partitions and checkpointing is reliable because it stores data in a reliable HDFS. Now, you also know that 
+checkpointing is slow because you have to write data to HDFS, and persisting may be slow if you use not only the memory, but the disks for 
+persisting, as well.
+
+
