@@ -1,0 +1,55 @@
+LOCATION: /opt/cloudera/parcels/KAFKA-3.0.0-1.3.0.0.p0.40/lib/kafka/bin/
+sh kafka-topics.sh --list --zookeeper 172.20.6.33 2181
+sh kafka-topics.sh --describe --zookeeper 172.20.6.33 2181 --topic saikat
+
+sh kafka-topics.sh --create --zookeeper 172.20.6.33:2181 --replication-factor 1 --partitions 3 --topic saikat
+sh kafka-topics.sh --zookeeper 172.20.6.33:2181 --delete --topic saikat
+
+sh kafka-console-producer.sh --broker-list 192.168.8.14:9092 --topic saikat
+sh kafka-console-consumer.sh --zookeeper 172.20.6.33:2181 --topic saikat --from-beginning  (this is working)
+sh kafka-console-consumer.sh --bootstrap-server 192.168.8.14:9092 --topic saikat --from-beginning --partition 0 (this is working)
+sh kafka-console-consumer.sh --bootstrap-server 192.168.8.14:9092 --topic saikat --from-beginning  (this is not working)
+
+// Subscribe to 1 topic
+val df = spark
+.readStream
+.format("kafka")
+.option("kafka.bootstrap.servers", "192.168.8.14:9092")
+.option("subscribe", "saikat")
+.load()
+df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+  .as[(String, String)]
+  
+ 
+
+
+val df= spark.readStream.
+format("kafka").
+option("kafka.bootstrap.servers", "192.168.8.14:9092").
+option("subscribe", "saikat").
+option("startingOffsets","earliest").
+load()
+
+
+
+val df= spark.readStream.format("kafka").
+option("kafka.bootstrap.servers", "172.20.6.33:2181").
+option("subscribe", "saikat").
+option("startingOffsets","earliest").
+load()
+
+val textDF= df.selectExpr("CAST(value as STRING)")
+textDF.writeStream.format("console").outputMode("append").start().awaitTermination()
+
+
+
+val query = df.writeStream.format("console").
+outputMode("append").
+start().
+awaitTermination()
+
+
+https://sparkbyexamples.com/spark/spark-streaming-consume-and-produce-kafka-messages-in-avro-format/
+https://sparkbyexamples.com/kafka/apache-kafka-consumer-producer-in-scala/
+https://sparkbyexamples.com/spark/spark-streaming-kafka-consumer-example-in-json-format/
+https://github.com/sparkbyexamples/spark-examples/blob/master/scala-kafka/src/main/scala/com/sparkbyexamples/kafka/KafkaConsumerAssignApp.scala
