@@ -1,0 +1,308 @@
+************************************************************************
+Hour Glass Problem:
+
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    // Complete the hourglassSum function below.
+    static int hourglassSum(int[][] arr) {
+        int sum=0;
+        int max_sum=0;
+        
+        for(int i=0 ; i <=3 ; i++) {
+            for (int j=0; j<=3; j++) {
+                sum=0;
+                sum= sum+ arr[i][j];
+                sum= sum+ arr[i][j+1];
+                sum= sum+ arr[i][j+2];
+                sum= sum+ arr[i+1][j+1];
+                sum= sum+ arr[i+2][j];
+                sum= sum+ arr[i+2][j+1];
+                sum= sum+ arr[i+2][j+2];
+
+                if (i==0 && j==0) {
+                    max_sum=sum;
+                }
+
+                if (sum > max_sum) {
+                   max_sum= sum;
+                }
+            }
+            
+        }
+        return max_sum;
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int[][] arr = new int[6][6];
+
+        for (int i = 0; i < 6; i++) {
+            String[] arrRowItems = scanner.nextLine().split(" ");
+            scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])?");
+
+            for (int j = 0; j < 6; j++) {
+                int arrItem = Integer.parseInt(arrRowItems[j]);
+                arr[i][j] = arrItem;
+            }
+        }
+
+        int result = hourglassSum(arr);
+
+        bufferedWriter.write(String.valueOf(result));
+        bufferedWriter.newLine();
+
+        bufferedWriter.close();
+
+        scanner.close();
+    }
+}
+
+***********************************************************************************
+left rotation
+
+A left rotation operation on an array shifts each of the array's elements  unit to the left. 
+For example, if 2 left rotations are performed on array [1,2,3,4,5], then the array would become 
+[3,4,5,1,2]
+
+public class Solution {
+
+    //rotate left by one
+    static void rotateLeftByOne(int a[], int n) {
+        int i, temp= a[0];
+        for (i=0; i< n-1; i++){
+            a[i]= a[i+1];
+        }
+        a[i]= temp;
+    }
+
+    // Complete the rotLeft function below.
+    static int[] rotLeft(int[] a, int d) {
+        int n= a.length;
+        for (int i=0; i <d; i++){
+            rotateLeftByOne (a, n);
+        }
+
+        return a;
+
+    }
+	
+**************************************************************************************
+minimum swaps
+
+static int minimumSwaps(int[] arr) {
+        int swap=0;
+        boolean visited[]=new boolean[arr.length];
+
+        for(int i=0;i<arr.length;i++){
+            int j=i,cycle=0;
+
+            while(!visited[j]){
+                visited[j]=true;
+                j=arr[j]-1;
+                cycle++;
+            }
+            
+            if(cycle!=0)
+                swap+=cycle-1;
+        }
+        return swap;
+
+    }
+
+****************************************************************************************
+New year chaos -  no. of times people brie in a queue and to identify chaotic queue
+
+// Complete the minimumBribes function below.
+    static void minimumBribes(int[] q) {
+        int c=0;
+        int m=0;
+        int flg=0;
+        for (int i=0; i < q.length-1; i++) {
+            for (int j=i+1; j< q.length; j++){
+                if (q[i] > q[j]) {
+                    c= c+1;
+                    if (c> 2) {
+                        flg=1;
+                        break;
+                    }
+                }
+                
+            }
+            m=m+c;
+            c=0;
+        }
+        if (flg==0) {
+            System.out.println(m);
+        }
+        else {
+            System.out.println("Too chaotic");
+        }
+
+    }
+
+****************************************************************************************
+/* check Hashtable - Ransome Note*/
+import java.util.*;
+public class RansomeNote {
+
+    static void checkMagazine(String[] magazine, String[] note) {
+        int count=0;
+        int flag= 0;
+        Hashtable <String, Integer> m = new Hashtable <String, Integer>();
+
+        for (int i=0; i< magazine.length; i++){
+            //System.out.println(magazine[i]);
+            for (int j=0; j < magazine.length; j++) {
+                if (magazine[i].equals(magazine[j])){
+                    count++;
+                }
+                m.put(magazine[i], count);
+            }
+            count=0;
+        }
+
+       for (int i=0; i< note.length; i++){
+            //System.out.println(magazine[i]);
+            for (int j=0; j < note.length; j++) {
+                if (note[i].equals(note[j])) {
+                    count++;
+                }
+            }
+            if (m.get(note[i]) != null && m.get(note[i])>=count){
+                  flag=0;
+            }
+            else {
+                flag=1;
+                break;
+            }
+            count=0;
+         }
+
+        if(flag==1) {
+            System.out.println("No");
+        }
+        else {
+            System.out.println("Yes");
+        }
+
+    }
+
+    public static void main (String args[]) {
+         String magazine[]={"give","me","one","grand","today","night"};
+         String note[]={"give","one","grand","grand","today"};
+         checkMagazine(magazine, note);
+    }
+}
+
+****************************************************************************
+// Complete the twoStrings function below.
+// Compare two large strings 
+static String twoStrings(String s1, String s2) {
+	int count=0;
+	for (int i=0; i <s1.length(); i++){
+		for (int j=0; j <s2.length(); j++) {
+			if (s1.charAt(i)== s2.charAt(j)){
+				count= count +1;
+			}
+		}
+
+	}
+	if (count >=1){
+		return "YES";
+	}
+	else {
+		return "NO";
+	}
+
+// Another approach
+
+ // Complete the twoStrings function below.
+ static String twoStrings(String s1, String s2) {
+        String s;
+        int l1= s1.length();
+        int l2= s2.length();
+        if (l1 > l2) {
+            s1= s1;
+            s2= s2;
+        }
+        else {
+            s = s1;
+            s1= s2;
+            s2= s;
+        }
+        int count=0;
+        for(int i=0; i < s1.length(); i++) {
+            if(s2.indexOf(s1.charAt(i)) != -1) {
+                count++;
+            }
+        }
+        if (count >=1){
+            return "YES";
+        }
+        else {
+            return "NO";
+        }
+    }
+
+******************************************************************************
+// BUBBLE SORT
+static void countSwaps(int[] a) {
+	int swap=0;
+	int temp=0;
+	boolean sorted=false;
+	while (!sorted) {
+		sorted=true;
+		for (int i = 0; i < a.length - 1; i++) {
+			int j = i + 1;
+			if (a[i] > a[j]) {
+				temp = a[i];
+				a[i] = a[j];
+				a[j] = temp;
+				sorted=false;
+				swap++;
+			}
+		}
+	}
+	System.out.println ("Array is sorted in "+ swap+" swaps.");
+	System.out.println ("First Element: "+ a[0]);
+	System.out.println ("Last Element: "+ a[a.length-1]);   
+}
+
+*******************************************************************************
+// comparator
+class Checker implements Comparator<Player> {
+  	// complete this method
+	public int compare(Player a, Player b) {
+       if (a.score== b.score && a.name.compareTo(b.name)==0){
+           return 0;
+       }
+       else if (a.score== b.score && a.name.compareTo(b.name) != 0){
+            if( a.name.compareTo(b.name) > 0){
+                return 1;
+            }
+            else {
+                return -1;
+            }
+       }
+       else if (a.score < b.score && a.name.compareTo(b.name) != 0){
+               return 1;
+       }
+       else if (a.score > b.score && a.name.compareTo(b.name) != 0){
+           return -1;
+       }
+       else {
+           return -1;
+       }
+    }
+}

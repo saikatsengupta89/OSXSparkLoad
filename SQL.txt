@@ -1,0 +1,66 @@
+with dataset as (select * from occupations)
+SELECT 
+a.doctor,
+a.professor,
+a.singer,
+b.name actor
+FROM
+(SELECT
+    NVL(A.ID, B.ID) ID,
+    A.DOCTOR,
+    A.PROFESSOR,
+    B.NAME SINGER
+    FROM
+    (SELECT 
+        NVL(A.ID, B.ID) ID,
+        A.NAME DOCTOR,
+        b.NAME PROFESSOR
+        FROM
+        (select 
+            DISTINCT
+            ROW_NUMBER() OVER(ORDER BY 1) ID,
+            NAME 
+            from dataset WHERE occupation='Doctor'
+            ORDER BY NAME ASC
+        ) A
+        FULL OUTER JOIN
+        (select 
+            DISTINCT
+            ROW_NUMBER() OVER(ORDER BY 1) ID,
+            NAME 
+            from dataset WHERE occupation='Professor'
+            ORDER BY NAME ASC
+        ) B
+        ON A.ID= B.ID
+    )A
+    FULL OUTER JOIN
+    (select 
+        DISTINCT
+        ROW_NUMBER() OVER(ORDER BY 1) ID,
+        NAME 
+        from dataset WHERE occupation='Singer'
+        ORDER BY NAME ASC
+    ) B
+    ON A.ID= B.ID
+) A
+FULL OUTER JOIN
+(select 
+    DISTINCT
+    ROW_NUMBER() OVER(ORDER BY 1) ID,
+    NAME 
+    from dataset WHERE occupation='Actor'
+    ORDER BY NAME ASC
+) B
+ON A.ID= B.ID;
+
+
+SELECT 
+CASE WHEN A=B AND B=C THEN 'Equilateral'
+     WHEN (A=B AND A<>C AND ((A+B)> C)) OR (A<>B AND B=C AND ((B+C)> A)) OR (A=C AND B <>C AND ((A+C)> B)) THEN 'Isosceles'
+     WHEN (A<>B AND A<>C AND B<>C) THEN 
+     CASE WHEN ((A+B)< C) OR ((B+C) < A) OR ((A+C) < B) THEN 'Not A Triangle'
+          ELSE 'Scalene'
+          END
+     ELSE 'Not A Triangle'
+     END TRIANGLE_TYPE
+FROM TRIANGLES;
