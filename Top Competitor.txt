@@ -1,0 +1,23 @@
+select hacker_id, name
+from (
+select 
+    hacker_id,
+    name,
+    sum(case when score <= scored then 1 else 0 end) more_than_1
+    from (
+    select 
+    a.hacker_id,
+    a.name,
+    c.challenge_id,
+    c.difficulty_level,
+    d.score,
+    s.submission_id,
+    s.score as scored
+    from hackers a
+    inner join submissions s on s.hacker_id= a.hacker_id
+    inner join challenges c on s.challenge_id= c.challenge_id
+    inner join difficulty d on d.difficulty_level= c.difficulty_level
+    )
+    group by hacker_id, name
+) where more_than_1 > 1
+order by 1;
