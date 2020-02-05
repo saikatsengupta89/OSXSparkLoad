@@ -78,7 +78,16 @@ object process_aggregate {
                             set("spark.sql.warehouse.dir","hdfs://bda1node01.fgb.ae:8020/user/hive/warehouse").
                             set("hive.metastore.uris","thrift://bda1node01.fgb.ae:9083").
                             set("spark.hadoop.validateOutputSpecs", "false").
-                            set("spark.sql.codegen.wholeStage","false") // TO STOP CODEGEN TO GENERATE PARQUET STRING WHICH THROWS ERROR
+                            set("spark.sql.codegen.wholeStage","false"). // TO STOP CODEGEN TO GENERATE PARQUET STRING WHICH THROWS ERROR
+                            set("spark.local.dir","/tmp/spark_temp").  // IF YOU WANT TO SET THE LOCAL SPARK DIRECTORY FOR MANAGING TEMP FILES
+                            set("spark.hadoop.hadoop.security.authentication", "kerberos").
+                            set("spark.hadoop.hadoop.security.authorization", "true").
+                            set("spark.hadoop.dfs.namenode.kerberos.principal","hdfs/bda1node04.fgb.ae@FGB.AE").
+                            set("spark.hadoop.yarn.resourcemanager.principal", "yarn/bda1node04.fgb.ae@FGB.AE").
+                            set("spark.yarn.keytab", "keytab path").
+                            set("spark.yarn.principal", "keytab principal").
+                            set("spark.yarn.access.hadoopFileSystem", "hdfs://bda1node01.fgb.ae:8020").
+                            set("spark.yarn.access.namenodes","hdfs://bda1node01.fgb.ae")
       return conf
   }
   
