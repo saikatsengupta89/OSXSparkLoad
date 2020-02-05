@@ -53,3 +53,6 @@ https://sparkbyexamples.com/spark/spark-streaming-consume-and-produce-kafka-mess
 https://sparkbyexamples.com/kafka/apache-kafka-consumer-producer-in-scala/
 https://sparkbyexamples.com/spark/spark-streaming-kafka-consumer-example-in-json-format/
 https://github.com/sparkbyexamples/spark-examples/blob/master/scala-kafka/src/main/scala/com/sparkbyexamples/kafka/KafkaConsumerAssignApp.scala
+
+
+https://acadgild.com/blog/hive-complex-data-types-with-examples
