@@ -204,4 +204,8 @@ Spark has to recompute its partitions and checkpointing is reliable because it s
 checkpointing is slow because you have to write data to HDFS, and persisting may be slow if you use not only the memory, but the disks for 
 persisting, as well.
 
-
+/*MORE INTERVIEW TOPICS TO LOOK AT*/
+Kafka -Offset management
+Difference betwen YARN-Client and YARN- Cluster
+How to handle schema changes automatically? What will happen to old history parquet data?
+What data governance you follow?
