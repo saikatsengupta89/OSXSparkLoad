@@ -26,10 +26,9 @@ object patch_gl_agg {
                          cov_geo:DataFrame, 
                          prod:DataFrame, 
                          dept:DataFrame, 
-                         pw:PrintWriter,
                          cust_seg:DataFrame): DataFrame= {
       
-      pw.println(today()+" OSX GL - PATCH SET INITIATED TO TAG GM STMT AND GM OTHERS INFORMATION") 
+      //pw.println(process_sumx_agg.time+" "+"OSX GL AGG- PATCH SET INITIATED TO TAG GM STMT AND GM OTHERS INFORMATION") 
      
       gl_agg_base.registerTempTable("OSX_SEG_GL_AGG")
       dom.registerTempTable("OSX_DOM")
@@ -40,8 +39,9 @@ object patch_gl_agg {
       prod.registerTempTable("OSX_PROD")
       dept.registerTempTable("OSX_DEPT")
       cust_seg.registerTempTable("OSX_CUST_SEG")
-      
-      pw.println(today()+" OSX GL - PATCH SET DATAFRAME CREATED")
+            
+      println(process_sumx_agg.time+" "+"OSX GL AGG- PATCH SET DATAFRAME CREATED")
+      //pw.println(process_sumx_agg.time+" "+"OSX GL AGG- PATCH SET DATAFRAME CREATED")
       
       val patch_dataset= sqlContext.sql (
           "SELECT  "+
@@ -72,7 +72,7 @@ object patch_gl_agg {
           "AND NOT PROD.PRODUCT_LEVL2_CODE IN ('00050','00055','00060','00070','00075','00080','00085','00090','00095','00130','01000', "+
           "'02000','20000','21000','30000','35000','36000','37000') THEN 'Others'  "+
           "WHEN GL_RPT.LEGAL_ENTITY <> '620' AND GL_FPA.GL_ACCOUNT_LEVL2_CODE = '60100000'   "+
-          "AND DEPT.L3_CODE = '100030' AND DOM.LVL2_CODE = '120000'   "+
+          "AND DEPT.L3_CODE = '100030' AND DOM.L2_CODE = '120000'   "+
           "AND C_SEG.L1_CODE IN ('5000','7000') AND NOT GL_FPA.GL_ACCOUNT_LEVL6_CODE IN ('619021','713071','713072')  "+
           "AND PROD.PRODUCT_CODE IN ('21020','21024','21029','9591','9593','9611') AND NOT GL_RPT.SOURCE_SYSTEM_ID IN ('AEI','AEIFMD') THEN 'NIM'  "+
           "ELSE 'GM Others'  "+
@@ -85,7 +85,7 @@ object patch_gl_agg {
           "ELSE 'Derivatives'  "+
           "END   "+
           "WHEN GL_RPT.LEGAL_ENTITY <> '620' AND GL_FPA.GL_ACCOUNT_LEVL2_CODE = '60100000'  "+
-          "AND DEPT.L3_CODE = '100030' AND DOM.LVL2_CODE = '120000'  "+
+          "AND DEPT.L3_CODE = '100030' AND DOM.L2_CODE = '120000'  "+
           "AND C_SEG.L1_CODE IN ('5000','7000') AND NOT GL_FPA.GL_ACCOUNT_LEVL6_CODE IN ('619021','713071','713072')  "+
           "AND PROD.PRODUCT_CODE IN ('21020','21024','21029','9591','9593','9611') AND NOT GL_RPT.SOURCE_SYSTEM_ID IN ('AEI','AEIFMD') THEN 'MM'  "+
           "ELSE 'GM Others'  "+
@@ -104,7 +104,7 @@ object patch_gl_agg {
           "AND DEPT.L2_CODE = '100003'  "+
           "AND GL_FPA.GL_ACCOUNT_LEVL1_CODE = '60000000'  "+
           "AND GL_RPT.CUSTOMER_SEGMENT_CODE = CV_GEO.COVERAGE_GEOGRAPHY  "+
-          "AND (DOM.LVL2_CODE = '120000' OR GL_RPT.DOMAIN_ID IN ('26','37','7'))  "+
+          "AND (DOM.L2_CODE = '120000' OR GL_RPT.DOMAIN_ID IN ('26','37','7'))  "+
           "AND (CASE C_SEG.L2_CODE WHEN '5005' THEN 'IBG'  "+
           "WHEN '5010' THEN 'CBG'  "+
           "WHEN '5015' THEN 'PCG'  "+
@@ -151,7 +151,7 @@ object patch_gl_agg {
           "'20000','21000','30000','35000','36000','37000') THEN 'Others'  "+
           "WHEN GL_RPT.LEGAL_ENTITY <> '620'  "+
           "AND GL_FPA.GL_ACCOUNT_LEVL2_CODE = '60100000'  "+
-          "AND DEPT.L3_CODE = '100030' AND DOM.LVL2_CODE = '120000'  "+
+          "AND DEPT.L3_CODE = '100030' AND DOM.L2_CODE = '120000'  "+
           "AND C_SEG.L1_CODE IN ('5000','7000') AND NOT GL_FPA.GL_ACCOUNT_LEVL6_CODE IN ('619021','713071','713072')  "+
           "AND PROD.PRODUCT_CODE IN ('21020','21024','21029','9591','9593','9611') AND NOT GL_RPT.SOURCE_SYSTEM_ID IN ('AEI','AEIFMD') THEN 'NIM'  "+
           "ELSE 'GM Others'  "+
@@ -164,7 +164,7 @@ object patch_gl_agg {
           "ELSE 'Derivatives'  "+
           "END   "+
           "WHEN GL_RPT.LEGAL_ENTITY <> '620' AND GL_FPA.GL_ACCOUNT_LEVL2_CODE = '60100000'  "+
-          "AND DEPT.L3_CODE = '100030' AND DOM.LVL2_CODE = '120000'  "+
+          "AND DEPT.L3_CODE = '100030' AND DOM.L2_CODE = '120000'  "+
           "AND C_SEG.L1_CODE IN ('5000','7000') AND NOT GL_FPA.GL_ACCOUNT_LEVL6_CODE IN ('619021','713071','713072')  "+
           "AND PROD.PRODUCT_CODE IN ('21020','21024','21029','9591','9593','9611') AND NOT GL_RPT.SOURCE_SYSTEM_ID IN ('AEI','AEIFMD') THEN 'MM'  "+
           "ELSE 'GM Others'  "+
@@ -172,7 +172,8 @@ object patch_gl_agg {
       
       patch_dataset.registerTempTable("OSX_SEG_GL_AGG_PATCH_SET")
       
-      pw.println(today() + " OSX GL - FINAL PATCH SET DATAFRAME CREATED")
+      println(process_sumx_agg.time+" "+"OSX GL AGG - FINAL PATCH SET DATAFRAME CREATED")
+      //pw.println(process_sumx_agg.time+" "+"OSX GL AGG - FINAL PATCH SET DATAFRAME CREATED")
           
       val gl_agg_base_f= sqlContext.sql (
           "SELECT "+
