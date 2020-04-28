@@ -13,24 +13,20 @@ import org.apache.spark.sql.SQLContext
 
 object load_total_lines {
   
-  
-    def today():String= {
-        return new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())
-    }
     
     def osx_seg_gl_tot_lines_load (sqlContext:SQLContext, 
                                    gl_agg_final:DataFrame, 
                                    dom:DataFrame, 
                                    acc:DataFrame, 
                                    pc:DataFrame,
-                                   pw:PrintWriter, 
                                    hdfs_gl_agg:String):DataFrame={
          
          gl_agg_final.registerTempTable("OSX_SEG_GL_AGG")
          acc.registerTempTable("OSX_GL_ACC_FPA")
          pc.registerTempTable("OSX_PROFIT_CENTRE")
          
-         println(today()+" OSX GL - TOTAL LINES POPULATION INITIATED")
+         println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINES POPULATION INITIATED")
+         //pw.println(process_sumx_agg.time+" "+" OSX GL - TOTAL LINES POPULATION INITIATED")
          
          /***************INVESTMENTS-13000********************/
          val tot_13000= sqlContext.sql(
@@ -156,7 +152,8 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13000', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
          
-         pw.println(today()+" GL AGG - TOTAL LINE 13000 DATAFRAME CREATED")
+         println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13000 DATAFRAME CREATED")
+         //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13000 DATAFRAME CREATED")
          
          /***************NET LOANS-13001********************/
          val tot_13001= sqlContext.sql(
@@ -282,7 +279,8 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13001', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
               
-         pw.println(today()+" GL AGG - TOTAL LINE 13001 DATAFRAME CREATED")
+         println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13001 DATAFRAME CREATED")
+         //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13001 DATAFRAME CREATED")
               
          /****************TOTAL ASSETS-13002******************/
          val tot_13002= sqlContext.sql(
@@ -408,7 +406,8 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13002', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
               
-          pw.println(today()+" GL AGG - TOTAL LINE 13002 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13002 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13002 DATAFRAME CREATED")
               
           /****************TOTAL LIABILITIES-13003******************/
           val tot_13003= sqlContext.sql(
@@ -534,7 +533,8 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13003', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")    
               
-          pw.println(today()+" GL AGG - TOTAL LINE 13003 DATAFRAME CREATED")
+         println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13003 DATAFRAME CREATED") 
+         //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13003 DATAFRAME CREATED")
               
               
           /****************PERFORMING LOANS-13004******************/
@@ -661,7 +661,8 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13004', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
           
-          pw.println(today()+" GL AGG - TOTAL LINE 13004 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13004 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13004 DATAFRAME CREATED")
           
           /****************CUSTOMER DEPOSITS-13005******************/
           val tot_13005= sqlContext.sql(
@@ -787,7 +788,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13005', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
           
-          pw.println(today()+" GL AGG - TOTAL LINE 13005 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13005 DATAFRAME CREATED")    
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13005 DATAFRAME CREATED")
               
           /****************TOTAL ASSETS-13008******************/
           val tot_13008= sqlContext.sql(
@@ -915,7 +918,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13008', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")    
           
-          pw.println(today()+" GL AGG - TOTAL LINE 13008 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13008 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13008 DATAFRAME CREATED")
           
           /****************TOTAL EARNING ASSETS-13010******************/
           val tot_13010= sqlContext.sql(
@@ -1042,7 +1047,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13010', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")
           
-          pw.println(today()+" GL AGG - TOTAL LINE 13010 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13010 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13010 DATAFRAME CREATED")
                    
           /****************TOTAL INTEREST BEARING LIABILITIES -13011******************/
           val tot_13011= sqlContext.sql(
@@ -1169,7 +1176,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-13011', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")    
           
-          pw.println(today()+" GL AGG - TOTAL LINE 13011 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 13011 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 13011 DATAFRAME CREATED")
           
           /****************NET INTEREST INCOME -67001******************/
           val tot_67001= sqlContext.sql(
@@ -1295,7 +1304,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-67001', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")     
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67001 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67001 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67001 DATAFRAME CREATED")
               
           /****************TOTAL INTEREST BEARING LIABILITIES -67002******************/
           val tot_67002= sqlContext.sql(
@@ -1421,7 +1432,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-67002', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY") 
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67002 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67002 DATAFRAME CREATED")    
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67002 DATAFRAME CREATED")
           
           /****************NON FUND INCOME -67003******************/
           val tot_67003= sqlContext.sql(
@@ -1547,7 +1560,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-67003', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY") 
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67003 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67003 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67003 DATAFRAME CREATED")
           
           /****************OPERATING INCOME -67004******************/
           val tot_67004= sqlContext.sql(
@@ -1673,7 +1688,9 @@ object load_total_lines {
               "GROUP BY A.AMOUNT_CLASS,A.BANKING_TYPE, NULL ,A.CATEGORY_CODE, NULL, A.CUSTOMER_SEGMENT_CODE,'TOTAL LINES',A.DOMAIN_ID,A.FINAL_SEGMENT, "+
               "'-67004', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY")     
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67004 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67004 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67004 DATAFRAME CREATED")
           
           /****************BUSINESS DIRECT COST -67005******************/
           val tot_67005= sqlContext.sql(
@@ -1809,7 +1826,8 @@ object load_total_lines {
               "'-67005', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67005 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67005 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67005 DATAFRAME CREATED")
           
           /****************OPERATING EXPENSES -67006******************/
           val tot_67006= sqlContext.sql(
@@ -1942,7 +1960,8 @@ object load_total_lines {
               "'-67006', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67006 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67006 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67006 DATAFRAME CREATED")
           
           /****************OPERATING PROFIT -67007******************/
           val tot_67007= sqlContext.sql(
@@ -2076,7 +2095,9 @@ object load_total_lines {
               "'-67007', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67007 DATAFRAME CREATED")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67007 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67007 DATAFRAME CREATED")
           
           /****************IMPAIRMENT -67008******************/
           val tot_67008= sqlContext.sql(
@@ -2204,7 +2225,8 @@ object load_total_lines {
               "'-67008', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67008 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67008 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67008 DATAFRAME CREATED")
           
           /****************TAX -67009******************/
           val tot_67009= sqlContext.sql(
@@ -2332,7 +2354,8 @@ object load_total_lines {
               "'-67009', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67009 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67009 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67009 DATAFRAME CREATED")
           
           /****************NPBT -67010******************/
           val tot_67010= sqlContext.sql(
@@ -2461,7 +2484,8 @@ object load_total_lines {
               "'-67010', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67010 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67010 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67010 DATAFRAME CREATED")
           
           /****************NPBT -67011******************/
           val tot_67011= sqlContext.sql(
@@ -2595,7 +2619,8 @@ object load_total_lines {
               "'-67011', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67011 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67011 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67011 DATAFRAME CREATED")
           
           /****************NET PROFIT AFTER EQUITY CHARGE -67013******************/
           val tot_67013= sqlContext.sql(
@@ -2728,7 +2753,8 @@ object load_total_lines {
               "'-67013', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67013 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67013 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67013 DATAFRAME CREATED")
                     
           /****************RWA -67016******************/
           val tot_67016= sqlContext.sql(
@@ -2859,7 +2885,8 @@ object load_total_lines {
               "'-67016', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67016 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67016 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67016 DATAFRAME CREATED")
           
           /****************NET PROFIT AFTER AMORTIZATION -67017******************/
           val tot_67017= sqlContext.sql(
@@ -2987,7 +3014,8 @@ object load_total_lines {
               "'-67017', A.IS_INTERNAL_ACCOUNT,A.LEGAL_ENTITY,A.PROFIT_CENTRE,A.SOURCE_SYSTEM_ID,A.TIME_KEY"
           )
           
-          pw.println(today()+" GL AGG - TOTAL LINE 67017 DATAFRAME CREATED")
+          println(process_sumx_agg.time+" "+"OSX GL AGG - TOTAL LINE 67017 DATAFRAME CREATED")
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - TOTAL LINE 67017 DATAFRAME CREATED")
           
           val gl_agg_tot= tot_13000.unionAll(tot_13001)
                                    .unionAll(tot_13002)
@@ -3011,8 +3039,9 @@ object load_total_lines {
                                    .unionAll(tot_67013)
                                    .unionAll(tot_67016)
                                    .unionAll(tot_67017)
-                                   
-          pw.println(today()+" GL AGG - ALL TOTAL LINE DATAFRAMES UNION DONE")
+          
+          println(process_sumx_agg.time+" "+"OSX GL AGG - ALL TOTAL LINE DATAFRAMES UNION DONE")                         
+          //pw.println(process_sumx_agg.time+" "+" GL AGG - ALL TOTAL LINE DATAFRAMES UNION DONE")
            
           return gl_agg_tot
     }
