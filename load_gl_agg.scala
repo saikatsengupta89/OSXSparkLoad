@@ -36,7 +36,8 @@ object load_gl_agg {
                              dept:DataFrame, 
                              cust_seg:DataFrame,
                              hdfs_gl_agg:String,
-                             overwrite_flag:Integer) {
+                             overwrite_flag:Integer,
+                             refresh_budget:Integer) {
       
       
         /**************************** CREATING GL LEVEL AGGREGATE FROM BASE LEVEL *********************************/
@@ -569,7 +570,177 @@ object load_gl_agg {
           println(process_sumx_agg.time+" "+ "OSX GL AGG - COMPLETE GL AGG DATAFRAME WITH TOTAL LINES AND PATCH SET CREATED")
           //pw.println(process_sumx_agg.time+" "+ "OSX GL AGG - COMPLETE GL AGG DATAFRAME WITH TOTAL LINES AND PATCH SET CREATED")
           
-          if (overwrite_flag==0 && ("hadoop fs -test -d ".concat(hdfs_seg_gl_agg_r).!)==0)
+          
+          if (refresh_budget == 1) {
+            
+              /* LOOKUP THE DATASET IN THE LAST_REFRESH_FLAG=Y */
+              fs.listStatus(new Path(s"$hdfs_seg_gl_agg/time_key=$time_key/last_refresh_flag=Y"))
+                .filter(_.isDir)
+                .map(_.getPath)
+                .foreach(x=> {
+                version_id+=x.toString.substring(x.toString.lastIndexOf("=")+1).toInt
+              })
+               
+              val exist_dir = "hadoop fs -test -d ".concat(s"$hdfs_seg_gl_agg/time_key=$time_key/last_refresh_flag=Y/version_id=$version_id/amount_class=MGTBGT").!
+               
+              if (exist_dir == 0) {
+                  println (process_sumx_agg.time+" "+  "OSX GL AGG - REMOVE AMOUNT CLASS - MGTBGT BEFORE BUDGET REBASE")
+                  val remove_dir = "hadoop fs -rm -r ".concat(s"$hdfs_seg_gl_agg/time_key=$time_key/last_refresh_flag=Y/version_id=$version_id/amount_class=MGTBGT").!
+                  if(remove_dir==0) {
+                   
+                    println (process_sumx_agg.time+" "+  "OSX GL AGG - MGTBGT DIRECTORY FOR "+time_key+" IS REMOVED")
+                    //pw.println ("OSX BASE - EXISTING DIRECTORY FOR "+time_key+" IS DELETED BEFORE BASE AGG RELOAD. LOAD IN PROGRESS")
+                  }
+               }
+              
+               println(process_sumx_agg.time+" "+"OSX GL AGG - CREATING DUMMY TEMP VIEW WITH LATEST VERSION ID FOR BUDGET REFRESH")
+               val last_version= sqlContext.sql (s"SELECT $version_id AS VERSION_ID")
+               last_version.registerTempTable("LKP_LAST_VERSION")
+               
+               val gl_agg_data= sqlContext.sql(
+                  "SELECT "+
+                  "A.TIME_KEY, "+
+                  "CAST(LKP.VERSION_ID AS INT) AS VERSION_ID, "+
+                  "A.AMOUNT_CLASS, "+
+                  "A.BANKING_TYPE, "+
+                  "A.BANKING_TYPE_CUSTOMER, "+
+                  "A.CATEGORY_CODE, "+
+                  "A.CURRENCY_CODE, "+
+                  "A.CUSTOMER_SEGMENT_CODE, "+
+                  "A.DATASET, "+
+                  "A.DOMAIN_ID, "+
+                  "A.FINAL_SEGMENT, "+
+                  "A.GL_ACCOUNT_ID, "+
+                  "A.IS_INTERNAL_ACCOUNT, "+
+                  "A.LEGAL_ENTITY, "+
+                  "A.PROFIT_CENTRE, "+
+                  "A.SOURCE_SYSTEM_ID, "+
+                  "A.ASSET_COF, "+
+                  "A.ASSET_COF_MTD_LCY, "+
+                  "A.ASSET_COF_YTD_AED, "+
+                  "A.ASSET_COF_YTD_LCY, "+
+                  "A.AVG_BOOK_BAL, "+
+                  "A.AVG_BOOK_BAL_MTD_LCY, "+
+                  "A.AVG_BOOK_BAL_YTD_AED, "+
+                  "A.AVG_BOOK_BAL_YTD_LCY, "+
+                  "A.CY_ED_BUDGET_MTD_AED, "+
+                  "A.CY_ED_BUDGET_MTD_LCY, "+
+                  "A.CY_ED_BUDGET_YTD_AED, "+
+                  "A.CY_ED_BUDGET_YTD_LCY, "+
+                  "A.DERIVATIVES_INCOME, "+
+                  "A.DERIVATIVES_INCOME_MTD_LCY, "+
+                  "A.DERIVATIVES_INCOME_YTD_AED, "+
+                  "A.DERIVATIVES_INCOME_YTD_LCY, "+
+                  "A.FEE_INCOME, "+
+                  "A.FEE_INCOME_MTD_LCY, "+
+                  "A.FEE_INCOME_YTD_AED, "+
+                  "A.FEE_INCOME_YTD_LCY, "+
+                  "A.FX_INCOME, "+
+                  "A.FX_INCOME_MTD_LCY, "+
+                  "A.FX_INCOME_YTD_AED, "+
+                  "A.FX_INCOME_YTD_LCY, "+
+                  "A.GROSS_INTEREST_EXPENSE, "+
+                  "A.GROSS_INTEREST_EXPENSE_MTD_LCY, "+
+                  "A.GROSS_INTEREST_EXPENSE_YTD_AED, "+
+                  "A.GROSS_INTEREST_EXPENSE_YTD_LCY, "+
+                  "A.GROSS_INTEREST_INCOME, "+
+                  "A.GROSS_INTEREST_INCOME_MTD_LCY, "+
+                  "A.GROSS_INTEREST_INCOME_YTD_AED, "+
+                  "A.GROSS_INTEREST_INCOME_YTD_LCY, "+
+                  "A.INTERBRANCH_EXPENSE, "+
+                  "A.INTERBRANCH_EXPENSE_MTD_LCY, "+
+                  "A.INTERBRANCH_EXPENSE_YTD_AED, "+
+                  "A.INTERBRANCH_EXPENSE_YTD_LCY, "+
+                  "A.INTERBRANCH_INCOME, "+
+                  "A.INTERBRANCH_INCOME_MTD_LCY, "+
+                  "A.INTERBRANCH_INCOME_YTD_AED, "+
+                  "A.INTERBRANCH_INCOME_YTD_LCY, "+
+                  "A.LIABILITY_COF, "+
+                  "A.LIABILITY_COF_MTD_LCY, "+
+                  "A.LIABILITY_COF_YTD_AED, "+
+                  "A.LIABILITY_COF_YTD_LCY, "+
+                  "A.LP_CHARGE, "+
+                  "A.LP_CHARGE_MTD_LCY, "+
+                  "A.LP_CHARGE_YTD_AED, "+
+                  "A.LP_CHARGE_YTD_LCY, "+
+                  "A.LP_CREDIT, "+
+                  "A.LP_CREDIT_MTD_LCY, "+
+                  "A.LP_CREDIT_YTD_AED, "+
+                  "A.LP_CREDIT_YTD_LCY, "+
+                  "A.MTD_AED, "+
+                  "A.MTD_AED_ACTUAL, "+
+                  "A.MTD_AED_BUDGET, "+
+                  "A.MTD_LCY, "+
+                  "A.MTD_LCY_ACTUAL, "+
+                  "A.MTD_LCY_BUDGET, "+
+                  "A.NET_INT_MARGIN, "+
+                  "A.NET_INT_MARGIN_MTD_LCY, "+
+                  "A.NET_INT_MARGIN_YTD_AED, "+
+                  "A.NET_INT_MARGIN_YTD_LCY, "+
+                  "A.NET_INTEREST_INCOME, "+
+                  "A.NET_INTEREST_INCOME_MTD_LCY, "+
+                  "A.NET_INTEREST_INCOME_YTD_AED, "+
+                  "A.NET_INTEREST_INCOME_YTD_LCY, "+
+                  "A.NET_INVESTMENT_INCOME, "+
+                  "A.NET_INVESTMENT_INCOME_MTD_LCY, "+
+                  "A.NET_INVESTMENT_INCOME_YTD_AED, "+
+                  "A.NET_INVESTMENT_INCOME_YTD_LCY, "+
+                  "A.NET_PL, "+
+                  "A.NET_PL_MTD_LCY, "+
+                  "A.NET_PL_YTD_AED, "+
+                  "A.NET_PL_YTD_LCY, "+
+                  "A.OTHER_INCOME, "+
+                  "A.OTHER_INCOME_MTD_LCY, "+
+                  "A.OTHER_INCOME_YTD_AED, "+
+                  "A.OTHER_INCOME_YTD_LCY, "+
+                  "A.RWA_CREDIT_RISK, "+
+                  "A.RWA_MARKET_RISK, "+
+                  "A.RWA_OPERATIONAL_RISK, "+
+                  "A.RWA_TOTAL, "+
+                  "A.TOTAL_FTP_AMT_MTD_AED, "+
+                  "A.TOTAL_FTP_AMT_MTD_LCY, "+
+                  "A.TOTAL_FTP_AMT_YTD_AED, "+
+                  "A.TOTAL_FTP_AMT_YTD_LCY, "+
+                  "A.YTD_AED, "+
+                  "A.YTD_AED_ACTUAL, "+
+                  "A.YTD_AED_BUDGET, "+
+                  "A.YTD_LCY, "+
+                  "A.YTD_LCY_ACTUAL, "+
+                  "A.YTD_LCY_BUDGET, "+
+                  "A.PREV_YR_CURR_MTH_YTD_AED, "+
+                  "A.PREV_YR_CURR_MTH_YTD_LCY, "+
+                  "A.PREV_MTH1_MTD_AED, "+
+                  "A.PREV_MTH1_MTD_LCY, "+
+                  "A.PREV_MTH2_MTD_AED, "+
+                  "A.PREV_MTH2_MTD_LCY, "+
+                  "A.GM_STMT_DERIVATIVES, "+
+                  "A.GM_OTHER, "+
+                  "'Y' LAST_REFRESH_FLAG "+
+                  "FROM ( "+
+                  "SELECT * "+
+                  "FROM FIN_FCT_OSX_SEG_GL_AGG_BASE "+
+                  "UNION ALL "+
+                  "SELECT * "+
+                  "FROM FIN_FCT_OSX_SEG_GL_AGG_TOT) A "+
+                  "CROSS JOIN LKP_LAST_VERSION LKP "
+                 )
+              
+              println (process_sumx_agg.time+" "+  "OSX GL AGG - WRITING BUDGET REBASE TO HDFS USING SNAPPPY COMPRESSION IN PARQUET FORMAT. WRITE PATH :"+ hdfs_gl_agg)
+                            
+              gl_agg_data.repartition(200)
+                         .write
+                         .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
+                         .mode("append")
+                         .format("parquet")
+                         .option("compression","snappy")
+                         .save(hdfs_gl_agg)
+              
+              println(process_sumx_agg.time+" "+ "OSX GL AGG - BUDGET REBASE COMPLETED")
+               
+               
+            
+          }
+          else if (overwrite_flag==0 && ("hadoop fs -test -d ".concat(hdfs_seg_gl_agg_r).!)==0)
           {
               
               println (process_sumx_agg.time+" "+  "OSX GL AGG - PROCESSING ADDITIONAL VERSION LOAD OF GL DATASET. APPLICABLE ONLY FOR MONTHLY LOAD SCENARIO" )
@@ -744,7 +915,7 @@ object load_gl_agg {
                             
               gl_agg_data.repartition(200)
                          .write
-                         .partitionBy("time_key", "last_refresh_flag", "version_id", "domain_id")
+                         .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
                          .mode("append")
                          .format("parquet")
                          .option("compression","snappy")
@@ -904,7 +1075,7 @@ object load_gl_agg {
                             
               gl_agg_data.repartition(200)
                          .write
-                         .partitionBy("time_key", "last_refresh_flag", "version_id", "domain_id")
+                         .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
                          .mode("append")
                          .format("parquet")
                          .option("compression","snappy")
