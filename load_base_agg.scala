@@ -41,7 +41,8 @@ object load_base_agg {
                              osx_cust: DataFrame,
                              osx_cont: DataFrame,
                              hdfs_raw_base_agg:String,
-                             overwrite_flag:Integer) {
+                             overwrite_flag:Integer,
+                             refresh_budget:Integer) {
     
     
       import sqlContext.implicits._
@@ -409,7 +410,393 @@ object load_base_agg {
       println (process_sumx_agg.time+" "+  "OSX BASE AGG - BASE AGGREGATE BS PL UNION FROM BASE DATAFRAME")
       //pw.println (process_sumx_agg.time+" "+  " OSX BASE - BASE AGGREGATE BS PL UNION FROM BASE DATAFRAME")
       
-      if (overwrite_flag==0 && ("hadoop fs -test -d ".concat(hdfs_seg_base_agg_r).!)==0)
+      if (refresh_budget == 1) {
+           
+          /* LOOKUP THE DATASET IN THE LAST_REFRESH_FLAG=Y */
+          fs.listStatus(new Path(s"$hdfs_seg_base_agg/time_key=$time_key/last_refresh_flag=Y"))
+            .filter(_.isDir)
+            .map(_.getPath)
+            .foreach(x=> {
+            version_id+=x.toString.substring(x.toString.lastIndexOf("=")+1).toInt
+          })
+           
+          val exist_dir = "hadoop fs -test -d ".concat(s"$hdfs_seg_base_agg/time_key=$time_key/last_refresh_flag=Y/version_id=$version_id/amount_class=MGTBGT").!
+           
+           if (exist_dir == 0) {
+              println (process_sumx_agg.time+" "+  "OSX BASE AGG - REMOVE AMOUNT CLASS - MGTBGT BEFORE BUDGET REBASE")
+              val remove_dir = "hadoop fs -rm -r ".concat(s"$hdfs_seg_base_agg/time_key=$time_key/last_refresh_flag=Y/version_id=$version_id/amount_class=MGTBGT").!
+              if(remove_dir==0) {
+               
+                println (process_sumx_agg.time+" "+  "OSX BASE AGG - MGTBGT DIRECTORY FOR "+time_key+" IS REMOVED")
+                //pw.println ("OSX BASE - EXISTING DIRECTORY FOR "+time_key+" IS DELETED BEFORE BASE AGG RELOAD. LOAD IN PROGRESS")
+              }
+           }
+           
+          println(process_sumx_agg.time+" "+"OSX BASE AGG - CREATING DUMMY TEMP VIEW WITH LATEST VERSION ID FOR BUDGET REFRESH")
+          val last_version= sqlContext.sql (s"SELECT $version_id AS VERSION_ID")
+          last_version.registerTempTable("LKP_LAST_VERSION")
+          
+          val osx_seg_base= sqlContext.sql (
+                  "SELECT  "+
+                  "  NVL(BS.TIME_KEY, PL.TIME_KEY) TIME_KEY,  "+
+                  "  CAST(VER.VERSION_ID AS INT) VERSION_ID, "+
+                  "  NVL(BS.AMOUNT_CLASS,PL.AMOUNT_CLASS) AMOUNT_CLASS,  "+
+                  "  CAST(NVL(ASSET_COF, 0 ) AS DOUBLE) ASSET_COF,  "+
+                  "  CAST(NVL(ASSET_COF_MTD_LCY, 0 ) AS DOUBLE) ASSET_COF_MTD_LCY,  "+
+                  "  CAST(NVL(ASSET_COF_YTD_AED, 0 ) AS DOUBLE) ASSET_COF_YTD_AED,  "+
+                  "  CAST(NVL(ASSET_COF_YTD_LCY, 0 ) AS DOUBLE) ASSET_COF_YTD_LCY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_LTD_ACY, 0 ) AS DOUBLE) AVG_BOOK_BAL_LTD_ACY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_LTD_AED, 0 ) AS DOUBLE) AVG_BOOK_BAL_LTD_AED,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_LTD_LCY, 0 ) AS DOUBLE) AVG_BOOK_BAL_LTD_LCY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_MTD_ACY, 0 ) AS DOUBLE) AVG_BOOK_BAL_MTD_ACY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_MTD_AED, 0 ) AS DOUBLE) AVG_BOOK_BAL_MTD_AED,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_MTD_LCY, 0 ) AS DOUBLE) AVG_BOOK_BAL_MTD_LCY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_YTD_ACY, 0 ) AS DOUBLE) AVG_BOOK_BAL_YTD_ACY,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_YTD_AED, 0 ) AS DOUBLE) AVG_BOOK_BAL_YTD_AED,  "+
+                  "  CAST(NVL(AVG_BOOK_BAL_YTD_LCY, 0 ) AS DOUBLE) AVG_BOOK_BAL_YTD_LCY,  "+
+                  "  NVL(BS.BALANCE_SHEET_TYPE,'BS-PL INSERT') BALANCE_SHEET_TYPE,  "+
+                  "  NVL(BS.BANKING_TYPE,PL.BANKING_TYPE) BANKING_TYPE,  "+
+                  "  NVL(BS.BANKING_TYPE_CUSTOMER,PL.BANKING_TYPE_CUSTOMER) BANKING_TYPE_CUSTOMER,  "+
+                  "  'BS' BS_PL_FLAG,  "+
+                  "  NVL(BS.CATEGORY_CODE,PL.CATEGORY_CODE) CATEGORY_CODE,  "+
+                  "  NVL(BS.COMMON_KEY, 0 ) COMMON_KEY,  "+
+                  "  NVL(BS.CONTRACT_ID,PL.CONTRACT_ID) CONTRACT_ID,  "+
+                  "  NVL(BS.CURRENCY_CODE,PL.CURRENCY_CODE) CURRENCY_CODE,  "+
+                  "  NVL(BS.CUSTOMER_NUMBER,PL.CUSTOMER_NUMBER) CUSTOMER_NUMBER,  "+
+                  "  NVL(BS.CUSTOMER_SEGMENT_CODE,PL.CUSTOMER_SEGMENT_CODE) CUSTOMER_SEGMENT_CODE,  "+
+                  "  CAST(NVL(DERIVATIVES_INCOME, 0 ) AS DOUBLE) DERIVATIVES_INCOME,  "+
+                  "  CAST(NVL(DERIVATIVES_INCOME_MTD_LCY, 0 ) AS DOUBLE) DERIVATIVES_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(DERIVATIVES_INCOME_YTD_AED, 0 ) AS DOUBLE) DERIVATIVES_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(DERIVATIVES_INCOME_YTD_LCY, 0 ) AS DOUBLE) DERIVATIVES_INCOME_YTD_LCY,  "+
+                  "  NVL(BS.DOMAIN_ID,PL.DOMAIN_ID) DOMAIN_ID,  "+
+                  "  CAST(NVL(FEE_INCOME, 0 ) AS DOUBLE) FEE_INCOME,  "+
+                  "  CAST(NVL(FEE_INCOME_MTD_LCY, 0 ) AS DOUBLE) FEE_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(FEE_INCOME_YTD_AED, 0 ) AS DOUBLE) FEE_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(FEE_INCOME_YTD_LCY, 0 ) AS DOUBLE) FEE_INCOME_YTD_LCY,  "+
+                  "  NVL(BS.FINAL_SEGMENT,PL.FINAL_SEGMENT) FINAL_SEGMENT,  "+
+                  "  CAST(NVL(FX_INCOME, 0 ) AS DOUBLE) FX_INCOME,  "+
+                  "  CAST(NVL(FX_INCOME_MTD_LCY, 0 ) AS DOUBLE) FX_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(FX_INCOME_YTD_AED, 0 ) AS DOUBLE) FX_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(FX_INCOME_YTD_LCY, 0 ) AS DOUBLE) FX_INCOME_YTD_LCY,  "+
+                  "  NVL(BS.GL_ACCOUNT_ID,'999999') GL_ACCOUNT_ID,  "+
+                  "  CAST(NVL(GROSS_INTEREST_EXPENSE, 0 ) AS DOUBLE) GROSS_INTEREST_EXPENSE,  "+
+                  "  CAST(NVL(GROSS_INTEREST_EXPENSE_MTD_LCY, 0 ) AS DOUBLE) GROSS_INTEREST_EXPENSE_MTD_LCY,  "+
+                  "  CAST(NVL(GROSS_INTEREST_EXPENSE_YTD_AED, 0 ) AS DOUBLE) GROSS_INTEREST_EXPENSE_YTD_AED,  "+
+                  "  CAST(NVL(GROSS_INTEREST_EXPENSE_YTD_LCY, 0 ) AS DOUBLE) GROSS_INTEREST_EXPENSE_YTD_LCY,  "+
+                  "  CAST(NVL(GROSS_INTEREST_INCOME, 0 ) AS DOUBLE) GROSS_INTEREST_INCOME,  "+
+                  "  CAST(NVL(GROSS_INTEREST_INCOME_MTD_LCY, 0 ) AS DOUBLE) GROSS_INTEREST_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(GROSS_INTEREST_INCOME_YTD_AED, 0 ) AS DOUBLE) GROSS_INTEREST_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(GROSS_INTEREST_INCOME_YTD_LCY, 0 ) AS DOUBLE) GROSS_INTEREST_INCOME_YTD_LCY,  "+
+                  "  CAST(NVL(INTERBRANCH_EXPENSE, 0 ) AS DOUBLE) INTERBRANCH_EXPENSE,  "+
+                  "  CAST(NVL(INTERBRANCH_EXPENSE_MTD_LCY, 0 ) AS DOUBLE) INTERBRANCH_EXPENSE_MTD_LCY,  "+
+                  "  CAST(NVL(INTERBRANCH_EXPENSE_YTD_AED, 0 ) AS DOUBLE) INTERBRANCH_EXPENSE_YTD_AED,  "+
+                  "  CAST(NVL(INTERBRANCH_EXPENSE_YTD_LCY, 0 ) AS DOUBLE) INTERBRANCH_EXPENSE_YTD_LCY,  "+
+                  "  CAST(NVL(INTERBRANCH_INCOME, 0 ) AS DOUBLE) INTERBRANCH_INCOME,  "+
+                  "  CAST(NVL(INTERBRANCH_INCOME_MTD_LCY, 0 ) AS DOUBLE) INTERBRANCH_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(INTERBRANCH_INCOME_YTD_AED, 0 ) AS DOUBLE) INTERBRANCH_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(INTERBRANCH_INCOME_YTD_LCY, 0 ) AS DOUBLE) INTERBRANCH_INCOME_YTD_LCY,  "+
+                  "  NVL(BS.IS_INTERNAL_ACCOUNT,'999999') IS_INTERNAL_ACCOUNT,  "+
+                  "  NVL(BS.LEGAL_ENTITY,PL.LEGAL_ENTITY) LEGAL_ENTITY,  "+
+                  "  CAST(NVL(LIABILITY_COF, 0 ) AS DOUBLE) LIABILITY_COF,  "+
+                  "  CAST(NVL(LIABILITY_COF_MTD_LCY, 0 ) AS DOUBLE) LIABILITY_COF_MTD_LCY,  "+
+                  "  CAST(NVL(LIABILITY_COF_YTD_AED, 0 ) AS DOUBLE) LIABILITY_COF_YTD_AED,  "+
+                  "  CAST(NVL(LIABILITY_COF_YTD_LCY, 0 ) AS DOUBLE) LIABILITY_COF_YTD_LCY,  "+
+                  "  CAST(NVL(LP_CHARGE, 0 ) AS DOUBLE) LP_CHARGE,  "+
+                  "  CAST(NVL(LP_CHARGE_MTD_LCY, 0 ) AS DOUBLE) LP_CHARGE_MTD_LCY,  "+
+                  "  CAST(NVL(LP_CHARGE_YTD_AED, 0 ) AS DOUBLE) LP_CHARGE_YTD_AED,  "+
+                  "  CAST(NVL(LP_CHARGE_YTD_LCY, 0 ) AS DOUBLE) LP_CHARGE_YTD_LCY,  "+
+                  "  CAST(NVL(LP_CREDIT, 0 ) AS DOUBLE) LP_CREDIT,  "+
+                  "  CAST(NVL(LP_CREDIT_MTD_LCY, 0 ) AS DOUBLE) LP_CREDIT_MTD_LCY,  "+
+                  "  CAST(NVL(LP_CREDIT_YTD_AED, 0 ) AS DOUBLE) LP_CREDIT_YTD_AED,  "+
+                  "  CAST(NVL(LP_CREDIT_YTD_LCY, 0 ) AS DOUBLE) LP_CREDIT_YTD_LCY,  "+
+                  "  CAST(NVL(MTD_ACY, 0 ) AS DOUBLE) MTD_ACY,  "+
+                  "  CAST(NVL(MTD_AED, 0 ) AS DOUBLE) MTD_AED,  "+
+                  "  CAST(NVL(MTD_LCY, 0 ) AS DOUBLE) MTD_LCY,  "+
+                  "  CAST(NVL(NET_INTEREST_INCOME, 0 ) AS DOUBLE) NET_INTEREST_INCOME,  "+
+                  "  CAST(NVL(NET_INTEREST_INCOME_MTD_LCY, 0 ) AS DOUBLE) NET_INTEREST_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(NET_INTEREST_INCOME_YTD_AED, 0 ) AS DOUBLE) NET_INTEREST_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(NET_INTEREST_INCOME_YTD_LCY, 0 ) AS DOUBLE) NET_INTEREST_INCOME_YTD_LCY,  "+
+                  "  CAST(NVL(NET_INVESTMENT_INCOME, 0 ) AS DOUBLE) NET_INVESTMENT_INCOME,  "+
+                  "  CAST(NVL(NET_INVESTMENT_INCOME_MTD_LCY, 0 ) AS DOUBLE) NET_INVESTMENT_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(NET_INVESTMENT_INCOME_YTD_AED, 0 ) AS DOUBLE) NET_INVESTMENT_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(NET_INVESTMENT_INCOME_YTD_LCY, 0 ) AS DOUBLE) NET_INVESTMENT_INCOME_YTD_LCY,  "+
+                  "  CAST(NVL(NET_PL, 0 ) AS DOUBLE) NET_PL,  "+
+                  "  CAST(NVL(NET_PL_MTD_LCY, 0 ) AS DOUBLE) NET_PL_MTD_LCY,  "+
+                  "  CAST(NVL(NET_PL_YTD_AED, 0 ) AS DOUBLE) NET_PL_YTD_AED,  "+
+                  "  CAST(NVL(NET_PL_YTD_LCY, 0 ) AS DOUBLE) NET_PL_YTD_LCY,  "+
+                  "  CAST(NVL(OTH_INCOME, 0 ) AS DOUBLE) OTH_INCOME,  "+
+                  "  CAST(NVL(OTH_INCOME_MTD_LCY, 0 ) AS DOUBLE) OTH_INCOME_MTD_LCY,  "+
+                  "  CAST(NVL(OTH_INCOME_YTD_AED, 0 ) AS DOUBLE) OTH_INCOME_YTD_AED,  "+
+                  "  CAST(NVL(OTH_INCOME_YTD_LCY, 0 ) AS DOUBLE) OTH_INCOME_YTD_LCY,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_MTD_ACY, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_MTD_ACY,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_MTD_AED, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_MTD_AED,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_MTD_LCY, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_MTD_LCY,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_YTD_ACY, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_YTD_ACY,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_YTD_AED, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_YTD_AED,  "+
+                  "  CAST(NVL(OUTSTANDING_BALANCE_YTD_LCY, 0 ) AS DOUBLE) OUTSTANDING_BALANCE_YTD_LCY,  "+
+                  "  NVL(BS.PROFIT_CENTRE,PL.PROFIT_CENTRE) PROFIT_CENTRE,  "+
+                  "  NVL(BS.SOURCE_SYSTEM_ID,PL.SOURCE_SYSTEM_ID) SOURCE_SYSTEM_ID,  "+
+                  "  CAST(NVL(TOTAL_FTP_AMT_MTD_AED, 0 ) AS DOUBLE) TOTAL_FTP_AMT_MTD_AED,  "+
+                  "  CAST(NVL(TOTAL_FTP_AMT_MTD_LCY, 0 ) AS DOUBLE) TOTAL_FTP_AMT_MTD_LCY,  "+
+                  "  CAST(NVL(TOTAL_FTP_AMT_YTD_AED, 0 ) AS DOUBLE) TOTAL_FTP_AMT_YTD_AED,  "+
+                  "  CAST(NVL(TOTAL_FTP_AMT_YTD_LCY, 0 ) AS DOUBLE) TOTAL_FTP_AMT_YTD_LCY,  "+
+                  "  CAST(NVL((NET_INTEREST_INCOME/(CASE WHEN AVG_BOOK_BAL_MTD_AED = 0 THEN 1 ELSE AVG_BOOK_BAL_MTD_AED END))*(365/(DAY(LAST_DAY(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP))))),0) AS DOUBLE) NET_INT_MARGIN,  "+
+                  "  CAST(NVL((NET_INTEREST_INCOME_MTD_LCY/(CASE WHEN AVG_BOOK_BAL_MTD_LCY = 0 THEN 1 ELSE AVG_BOOK_BAL_MTD_LCY END))*(365/(DAY(LAST_DAY(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP))))),0) AS DOUBLE) NET_INT_MARGIN_MTD_LCY, "+
+                  "  CAST(NVL((NET_INTEREST_INCOME_YTD_AED/(CASE WHEN AVG_BOOK_BAL_YTD_AED = 0 THEN 1 ELSE AVG_BOOK_BAL_YTD_AED END))*(365/(DATEDIFF(TO_DATE(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP)), TO_DATE(TRUNC(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP), 'year')))+1)),0) AS DOUBLE) NET_INT_MARGIN_YTD_AED, "+
+                  "  CAST(NVL((NET_INTEREST_INCOME_YTD_LCY/(CASE WHEN AVG_BOOK_BAL_YTD_LCY = 0 THEN 1 ELSE AVG_BOOK_BAL_YTD_LCY END))*(365/(DATEDIFF(TO_DATE(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP)), TO_DATE(TRUNC(CAST(UNIX_TIMESTAMP(NVL(BS.TIME_KEY, PL.TIME_KEY),'yyyyMMdd') AS TIMESTAMP), 'year')))+1)),0) AS DOUBLE)  NET_INT_MARGIN_YTD_LCY, "+
+                  " 'Y' AS LAST_REFRESH_FLAG "+
+                  "FROM  "+
+                  "  (SELECT * FROM OSX_SEG_BS_DATA )BS  "+
+                  "FULL OUTER JOIN  "+
+                  "  (SELECT   "+
+                  "    Q3.TIME_KEY,  "+
+                  "    Q3.AMOUNT_CLASS,  "+
+                  "    Q3.BANKING_TYPE,  "+
+                  "    Q3.BANKING_TYPE_CUSTOMER,  "+
+                  "    Q3.CATEGORY_CODE,  "+
+                  "    Q3.CONTRACT_ID,  "+
+                  "    Q3.CURRENCY_CODE,  "+
+                  "    Q3.CUSTOMER_NUMBER,  "+
+                  "    Q3.CUSTOMER_SEGMENT_CODE,  "+
+                  "    Q3.DOMAIN_ID,  "+
+                  "    Q3.FINAL_SEGMENT,  "+
+                  "    Q3.LEGAL_ENTITY,  "+
+                  "    Q3.PROFIT_CENTRE,  "+
+                  "    Q3.SOURCE_SYSTEM_ID,  "+
+                  "    SUM(Q3.ASSET_COF) ASSET_COF,  "+
+                  "    SUM(Q3.ASSET_COF_MTD_LCY) ASSET_COF_MTD_LCY,  "+
+                  "    SUM(Q3.ASSET_COF_YTD_AED) ASSET_COF_YTD_AED,  "+
+                  "    SUM(Q3.ASSET_COF_YTD_LCY) ASSET_COF_YTD_LCY,  "+
+                  "    SUM(Q3.DERIVATIVES_INCOME) DERIVATIVES_INCOME,  "+
+                  "    SUM(Q3.DERIVATIVES_INCOME_MTD_LCY) DERIVATIVES_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.DERIVATIVES_INCOME_YTD_AED) DERIVATIVES_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.DERIVATIVES_INCOME_YTD_LCY) DERIVATIVES_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.FEE_INCOME) FEE_INCOME,  "+
+                  "    SUM(Q3.FEE_INCOME_MTD_LCY) FEE_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.FEE_INCOME_YTD_AED) FEE_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.FEE_INCOME_YTD_LCY) FEE_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.FX_INCOME) FX_INCOME,  "+
+                  "    SUM(Q3.FX_INCOME_MTD_LCY) FX_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.FX_INCOME_YTD_AED) FX_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.FX_INCOME_YTD_LCY) FX_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.GROSS_INTEREST_EXPENSE) GROSS_INTEREST_EXPENSE,  "+
+                  "    SUM(Q3.GROSS_INTEREST_EXPENSE_MTD_LCY) GROSS_INTEREST_EXPENSE_MTD_LCY,  "+
+                  "    SUM(Q3.GROSS_INTEREST_EXPENSE_YTD_AED) GROSS_INTEREST_EXPENSE_YTD_AED,  "+
+                  "    SUM(Q3.GROSS_INTEREST_EXPENSE_YTD_LCY) GROSS_INTEREST_EXPENSE_YTD_LCY,  "+
+                  "    SUM(Q3.GROSS_INTEREST_INCOME) GROSS_INTEREST_INCOME,  "+
+                  "    SUM(Q3.GROSS_INTEREST_INCOME_MTD_LCY) GROSS_INTEREST_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.GROSS_INTEREST_INCOME_YTD_AED) GROSS_INTEREST_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.GROSS_INTEREST_INCOME_YTD_LCY) GROSS_INTEREST_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.INTERBRANCH_EXPENSE) INTERBRANCH_EXPENSE,  "+
+                  "    SUM(Q3.INTERBRANCH_EXPENSE_MTD_LCY) INTERBRANCH_EXPENSE_MTD_LCY,  "+
+                  "    SUM(Q3.INTERBRANCH_EXPENSE_YTD_AED) INTERBRANCH_EXPENSE_YTD_AED,  "+
+                  "    SUM(Q3.INTERBRANCH_EXPENSE_YTD_LCY) INTERBRANCH_EXPENSE_YTD_LCY,  "+
+                  "    SUM(Q3.INTERBRANCH_INCOME) INTERBRANCH_INCOME,  "+
+                  "    SUM(Q3.INTERBRANCH_INCOME_MTD_LCY) INTERBRANCH_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.INTERBRANCH_INCOME_YTD_AED) INTERBRANCH_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.INTERBRANCH_INCOME_YTD_LCY) INTERBRANCH_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.LIABILITY_COF) LIABILITY_COF,  "+
+                  "    SUM(Q3.LIABILITY_COF_MTD_LCY) LIABILITY_COF_MTD_LCY,  "+
+                  "    SUM(Q3.LIABILITY_COF_YTD_AED) LIABILITY_COF_YTD_AED,  "+
+                  "    SUM(Q3.LIABILITY_COF_YTD_LCY) LIABILITY_COF_YTD_LCY,  "+
+                  "    SUM(Q3.LP_CHARGE) LP_CHARGE,  "+
+                  "    SUM(Q3.LP_CHARGE_MTD_LCY) LP_CHARGE_MTD_LCY,  "+
+                  "    SUM(Q3.LP_CHARGE_YTD_AED) LP_CHARGE_YTD_AED,  "+
+                  "    SUM(Q3.LP_CHARGE_YTD_LCY) LP_CHARGE_YTD_LCY,  "+
+                  "    SUM(Q3.LP_CREDIT) LP_CREDIT,  "+
+                  "    SUM(Q3.LP_CREDIT_MTD_LCY) LP_CREDIT_MTD_LCY,  "+
+                  "    SUM(Q3.LP_CREDIT_YTD_AED) LP_CREDIT_YTD_AED,  "+
+                  "    SUM(Q3.LP_CREDIT_YTD_LCY) LP_CREDIT_YTD_LCY,  "+
+                  "    SUM(Q3.NET_INTEREST_INCOME) NET_INTEREST_INCOME,  "+
+                  "    SUM(Q3.NET_INTEREST_INCOME_MTD_LCY) NET_INTEREST_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.NET_INTEREST_INCOME_YTD_AED) NET_INTEREST_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.NET_INTEREST_INCOME_YTD_LCY) NET_INTEREST_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.NET_INVESTMENT_INCOME) NET_INVESTMENT_INCOME,  "+
+                  "    SUM(Q3.NET_INVESTMENT_INCOME_MTD_LCY) NET_INVESTMENT_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.NET_INVESTMENT_INCOME_YTD_AED) NET_INVESTMENT_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.NET_INVESTMENT_INCOME_YTD_LCY) NET_INVESTMENT_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.NET_PL) NET_PL,  "+
+                  "    SUM(Q3.NET_PL_MTD_LCY) NET_PL_MTD_LCY,  "+
+                  "    SUM(Q3.NET_PL_YTD_AED) NET_PL_YTD_AED,  "+
+                  "    SUM(Q3.NET_PL_YTD_LCY) NET_PL_YTD_LCY,  "+
+                  "    SUM(Q3.OTH_INCOME) OTH_INCOME,  "+
+                  "    SUM(Q3.OTH_INCOME_MTD_LCY) OTH_INCOME_MTD_LCY,  "+
+                  "    SUM(Q3.OTH_INCOME_YTD_AED) OTH_INCOME_YTD_AED,  "+
+                  "    SUM(Q3.OTH_INCOME_YTD_LCY) OTH_INCOME_YTD_LCY,  "+
+                  "    SUM(Q3.TOTAL_FTP_AMT_MTD_AED) TOTAL_FTP_AMT_MTD_AED,  "+
+                  "    SUM(Q3.TOTAL_FTP_AMT_MTD_LCY) TOTAL_FTP_AMT_MTD_LCY,  "+
+                  "    SUM(Q3.TOTAL_FTP_AMT_YTD_AED) TOTAL_FTP_AMT_YTD_AED,  "+
+                  "    SUM(Q3.TOTAL_FTP_AMT_YTD_LCY) TOTAL_FTP_AMT_YTD_LCY,  "+
+                  "    1 RANK_PL  "+
+                  "  FROM  "+
+                  "    (SELECT Q2.*,  "+
+                  "      (Q2.NET_INTEREST_INCOME        +Q2.DERIVATIVES_INCOME+Q2.FEE_INCOME+Q2.FX_INCOME+Q2.NET_INVESTMENT_INCOME+Q2.OTH_INCOME+Q2.INTERBRANCH_INCOME+Q2.INTERBRANCH_EXPENSE) NET_PL,  "+
+                  "      (Q2.NET_INTEREST_INCOME_MTD_LCY+Q2.DERIVATIVES_INCOME_MTD_LCY+Q2.FEE_INCOME_MTD_LCY+Q2.FX_INCOME_MTD_LCY+Q2.NET_INVESTMENT_INCOME_MTD_LCY+Q2.OTH_INCOME_MTD_LCY+Q2.INTERBRANCH_INCOME_MTD_LCY+Q2.INTERBRANCH_EXPENSE_MTD_LCY) NET_PL_MTD_LCY,  "+
+                  "      (Q2.NET_INTEREST_INCOME_YTD_AED+Q2.DERIVATIVES_INCOME_YTD_AED+Q2.FEE_INCOME_YTD_AED+Q2.FX_INCOME_YTD_AED+Q2.NET_INVESTMENT_INCOME_YTD_AED+Q2.OTH_INCOME_YTD_AED+Q2.INTERBRANCH_INCOME_YTD_AED+Q2.INTERBRANCH_EXPENSE_YTD_AED) NET_PL_YTD_AED,  "+
+                  "      (Q2.NET_INTEREST_INCOME_YTD_LCY+Q2.DERIVATIVES_INCOME_YTD_LCY+Q2.FEE_INCOME_YTD_LCY+Q2.FX_INCOME_YTD_LCY+Q2.NET_INVESTMENT_INCOME_YTD_LCY+Q2.OTH_INCOME_YTD_LCY+Q2.INTERBRANCH_INCOME_YTD_LCY+Q2.INTERBRANCH_EXPENSE_YTD_LCY) NET_PL_YTD_LCY  "+
+                  "    FROM  "+
+                  "      (SELECT Q1.*,  "+
+                  "        (Q1.GROSS_INTEREST_INCOME         + Q1.ASSET_COF + Q1.LP_CHARGE + Q1.GROSS_INTEREST_EXPENSE + Q1.LIABILITY_COF + Q1.LP_CREDIT) NET_INTEREST_INCOME,  "+
+                  "        (Q1.GROSS_INTEREST_INCOME_MTD_LCY + Q1.ASSET_COF_MTD_LCY + Q1.LP_CHARGE_MTD_LCY + Q1.GROSS_INTEREST_EXPENSE_MTD_LCY + Q1.LIABILITY_COF_MTD_LCY + Q1.LP_CREDIT_MTD_LCY) NET_INTEREST_INCOME_MTD_LCY,  "+
+                  "        (Q1.GROSS_INTEREST_INCOME_YTD_AED + Q1.ASSET_COF_YTD_AED + Q1.LP_CHARGE_YTD_AED + Q1.GROSS_INTEREST_EXPENSE_YTD_AED + Q1.LIABILITY_COF_YTD_AED + Q1.LP_CREDIT_YTD_AED) NET_INTEREST_INCOME_YTD_AED,  "+
+                  "        (Q1.GROSS_INTEREST_INCOME_YTD_LCY + Q1.ASSET_COF_YTD_LCY + Q1.LP_CHARGE_YTD_LCY + Q1.GROSS_INTEREST_EXPENSE_YTD_LCY + Q1.LIABILITY_COF_YTD_LCY + Q1.LP_CREDIT_YTD_LCY) NET_INTEREST_INCOME_YTD_LCY,  "+
+                  "        (Q1.ASSET_COF                     + Q1.LP_CHARGE + Q1.LIABILITY_COF + Q1.LP_CREDIT) TOTAL_FTP_AMT_MTD_AED,  "+
+                  "        (Q1.ASSET_COF_MTD_LCY             + Q1.LP_CHARGE_MTD_LCY + Q1.LIABILITY_COF_MTD_LCY + Q1.LP_CREDIT_MTD_LCY) TOTAL_FTP_AMT_MTD_LCY,  "+
+                  "        (Q1.ASSET_COF_YTD_AED             + Q1.LP_CHARGE_YTD_AED + Q1.LIABILITY_COF_YTD_AED + Q1.LP_CREDIT_YTD_AED) TOTAL_FTP_AMT_YTD_AED,  "+
+                  "        (Q1.ASSET_COF_YTD_LCY             + Q1.LP_CHARGE_YTD_LCY + Q1.LIABILITY_COF_YTD_LCY + Q1.LP_CREDIT_YTD_LCY) TOTAL_FTP_AMT_YTD_LCY  "+
+                  "      FROM  "+
+                  "        (SELECT * FROM OSX_SEG_PL_DATA )Q1  "+
+                  "      )Q2  "+
+                  "    )Q3  "+
+                  "  group by Q3.AMOUNT_CLASS, Q3.BANKING_TYPE, Q3.BANKING_TYPE_CUSTOMER, Q3.CATEGORY_CODE, Q3.CONTRACT_ID, Q3.CURRENCY_CODE, Q3.CUSTOMER_NUMBER, Q3.CUSTOMER_SEGMENT_CODE, Q3.DOMAIN_ID, Q3.FINAL_SEGMENT, Q3.LEGAL_ENTITY, Q3.PROFIT_CENTRE, Q3.SOURCE_SYSTEM_ID, 1  "+
+                  ")PL ON BS.AMOUNT_CLASS     = PL.AMOUNT_CLASS  "+
+                  "AND BS.BANKING_TYPE          = PL.BANKING_TYPE  "+
+                  "AND BS.BANKING_TYPE_CUSTOMER = PL.BANKING_TYPE_CUSTOMER  "+
+                  "AND BS.CATEGORY_CODE         = PL.CATEGORY_CODE  "+
+                  "AND BS.CONTRACT_ID           = PL.CONTRACT_ID  "+
+                  "AND BS.CURRENCY_CODE         = PL.CURRENCY_CODE  "+
+                  "AND BS.CUSTOMER_NUMBER       = PL.CUSTOMER_NUMBER  "+
+                  "AND BS.CUSTOMER_SEGMENT_CODE = PL.CUSTOMER_SEGMENT_CODE  "+
+                  "AND BS.DOMAIN_ID             = PL.DOMAIN_ID  "+
+                  "AND BS.FINAL_SEGMENT         = PL.FINAL_SEGMENT  "+
+                  "AND BS.LEGAL_ENTITY          = PL.LEGAL_ENTITY  "+
+                  "AND BS.PROFIT_CENTRE         = PL.PROFIT_CENTRE  "+
+                  "AND BS.SOURCE_SYSTEM_ID      = PL.SOURCE_SYSTEM_ID  "+
+                  "AND RANK_BS                  = RANK_PL "+
+                  "CROSS JOIN LKP_LAST_VERSION VER "+
+                  "UNION ALL "+
+                  "SELECT  "+
+                  "    TIME_KEY, "+
+                  "    CAST(VER.VERSION_ID AS INT) VERSION_ID, "+
+                  "    AMOUNT_CLASS, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    CAST(AVG_BOOK_BAL_LTD_ACY AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_LTD_AED AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_LTD_LCY AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_MTD_ACY AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_MTD_AED AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_MTD_LCY AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_YTD_ACY AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_YTD_AED AS DOUBLE), "+
+                  "    CAST(AVG_BOOK_BAL_YTD_LCY AS DOUBLE), "+
+                  "    BALANCE_SHEET_TYPE, "+
+                  "    BANKING_TYPE, "+
+                  "    BANKING_TYPE_CUSTOMER, "+
+                  "    BS_PL_FLAG, "+
+                  "    CATEGORY_CODE, "+
+                  "    COMMON_KEY, "+
+                  "    CONTRACT_ID, "+
+                  "    CURRENCY_CODE, "+
+                  "    CUSTOMER_NUMBER, "+
+                  "    CUSTOMER_SEGMENT_CODE, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    DOMAIN_ID, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    FINAL_SEGMENT, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    GL_ACCOUNT_ID, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    IS_INTERNAL_ACCOUNT, "+
+                  "    LEGAL_ENTITY, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    MTD_ACY, "+
+                  "    MTD_AED, "+
+                  "    MTD_LCY, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    CAST(OUTSTANDING_BALANCE_MTD_ACY AS DOUBLE), "+
+                  "    CAST(OUTSTANDING_BALANCE_MTD_AED AS DOUBLE), "+
+                  "    CAST(OUTSTANDING_BALANCE_MTD_LCY AS DOUBLE), "+
+                  "    CAST(OUTSTANDING_BALANCE_YTD_ACY AS DOUBLE), "+
+                  "    CAST(OUTSTANDING_BALANCE_YTD_AED AS DOUBLE), "+
+                  "    CAST(OUTSTANDING_BALANCE_YTD_LCY AS DOUBLE), "+
+                  "    PROFIT_CENTRE, "+
+                  "    SOURCE_SYSTEM_ID, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  "    NULL, "+
+                  " 'Y' AS LAST_REFRESH_FLAG "+
+                  "FROM OSX_SEG_BASE_AGG AGG "+
+                  "CROSS JOIN LKP_LAST_VERSION VER "+
+                  "WHERE BS_PL_FLAG = 'PL' "
+          )
+          
+          println (process_sumx_agg.time+" "+  "OSX BASE AGG - WRITING BUDGET REBASE TO HDFS USING SNAPPPY COMPRESSION IN PARQUET FORMAT. WRITE PATH :"+ hdfs_seg_base_agg)
+          osx_seg_base.repartition(200)
+                        .write
+                        .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
+                        .mode("append")
+                        .format("parquet")
+                        .option("compression","snappy")
+                        .save(hdfs_seg_base_agg)
+          
+          //osx_seg_base.show(10)
+          //println("Total Budget Records : "+ osx_seg_base.count())
+          println (process_sumx_agg.time+" "+ "OSX BASE AGG - BUDGET REBASE COMPLETED")
+          
+          //CALLING THE TRIAL BALANCE PROCESSING FUNCTION
+          println (process_sumx_agg.time+" "+  "OSX TRIAL BAL - LOAD CALLED FOR REBASE BUDGET")
+          load_trial_balance.osx_seg_trial_balance_load(sc, sqlContext, time_key, dom, acc, le, osx_cust, osx_cont, osx_seg_base, overwrite_flag, 1)
+       }
+       
+       else if ((overwrite_flag==0 && ("hadoop fs -test -d ".concat(hdfs_seg_base_agg_r).!)==0))
        {
           
           println (process_sumx_agg.time+" "+  "OSX BASE AGG - PROCESSING ADDITIONAL VERSION LOAD OF BASE DATASET. APPLICABLE ONLY FOR MONTHLY LOAD SCENARIO" )
@@ -444,6 +831,7 @@ object load_base_agg {
           }
           else {
                 println(process_sumx_agg.time+" "+"OSX BASE AGG - THERE WERE NO FILE IN LAST REFRESH FLAG FOLDER PATH. THIS IS AN EXCEPTION. TERMINATING PROCESS")
+                System.exit(0)
           }
                     
           /* CREATING A TEMPORARY LOOKUP TABLE WITH LATEST VERSION ID FOR BELOW OPERATIONS */
@@ -797,7 +1185,7 @@ object load_base_agg {
           
           osx_seg_base.repartition(200)
                         .write
-                        .partitionBy("time_key", "last_refresh_flag", "version_id", "domain_id")
+                        .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
                         .mode("append")
                         .format("parquet")
                         .option("compression","snappy")
@@ -809,10 +1197,12 @@ object load_base_agg {
           
           //CALLING THE TRIAL BALANCE PROCESSING FUNCTION
           println (process_sumx_agg.time+" "+  "OSX TRIAL BAL - LOAD CALLED FROM BASE LOAD FUNCTION")
-          load_trial_balance.osx_seg_trial_balance_load(sc, sqlContext, time_key, dom, acc, le, osx_cust, osx_cont, osx_seg_base, overwrite_flag)
+          load_trial_balance.osx_seg_trial_balance_load(sc, sqlContext, time_key, dom, acc, le, osx_cust, osx_cont, osx_seg_base, overwrite_flag,0)
           
          
        }
+       
+       // IF BASE REFRESH IS CALLED FOR BUDGET REFRESH ONLY      
        else 
        {   
           
@@ -1181,7 +1571,7 @@ object load_base_agg {
           
           osx_seg_base.repartition(200)
                         .write
-                        .partitionBy("time_key", "last_refresh_flag", "version_id", "domain_id")
+                        .partitionBy("time_key", "last_refresh_flag", "version_id", "amount_class", "domain_id")
                         .mode("append")
                         .format("parquet")
                         .option("compression","snappy")
@@ -1193,7 +1583,7 @@ object load_base_agg {
           
           //CALLING THE TRIAL BALANCE PROCESSING FUNCTION
           println (process_sumx_agg.time+" "+  "OSX TRIAL BAL - LOAD CALLED FROM BASE LOAD FUNCTION")
-          load_trial_balance.osx_seg_trial_balance_load(sc, sqlContext, time_key, dom, acc, le, osx_cust, osx_cont, osx_seg_base, overwrite_flag)
+          load_trial_balance.osx_seg_trial_balance_load(sc, sqlContext, time_key, dom, acc, le, osx_cust, osx_cont, osx_seg_base, overwrite_flag,0)
          
        }             
                    
